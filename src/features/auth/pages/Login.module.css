@@ -1,0 +1,168 @@
+.gradientCustom {
+  /* fallback for old browsers */
+  background: var(--surface);
+
+  /* Chrome 10-25, Safari 5.1-6 */
+  background: -webkit-linear-gradient(to right, var(--surface), var(--border));
+
+  /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+  background: linear-gradient(to right, var(--surface), var(--border))
+}
+
+.card {
+  background-color: var(--surface) !important;
+  border: 1px solid var(--border);
+}
+
+.floatingInputGroup {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.floatingInput {
+  background-color: var(--surface-2) !important;
+  color: var(--text) !important;
+  border: 2px solid var(--primary) !important;
+  transition: all 0.3s ease;
+  padding: 1rem 0.75rem !important;
+}
+
+.floatingInput:hover {
+  border-color: var(--primary-hover) !important;
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.1) !important;
+}
+
+.floatingInput:focus {
+  border-color: var(--primary-hover) !important;
+  background-color: var(--surface-2) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.2) !important;
+  outline: none !important;
+}
+
+.floatingLabelCustom {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 400;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  background-color: transparent;
+  padding: 0;
+}
+
+/* Cuando el input tiene valor o está enfocado */
+.floatingInput:not(:placeholder-shown) ~ .floatingLabelCustom,
+.floatingInput:focus ~ .floatingLabelCustom {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  
+  /* Fondo discreto con padding redondeado */
+  background-color: var(--surface-2);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  color: var(--text-muted);
+}
+
+.floatingInput:focus ~ .floatingLabelCustom {
+  color: var(--primary);
+}
+
+/* Estilos especiales para input de fecha */
+.dateInput {
+  cursor: text;
+}
+
+.dateInput::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(1);
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.dateInput::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* El input de fecha siempre muestra el label arriba */
+.dateInput ~ .floatingLabelCustom {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: var(--surface-2);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  color: var(--text-muted);
+}
+
+/* Estilos específicos para react-datepicker con floating label */
+.floatingInputGroup .react-datepicker-wrapper {
+  width: 100%;
+}
+
+.floatingInputGroup .react-datepicker__input-container {
+  width: 100%;
+  display: block;
+}
+
+/* El DatePicker muestra el label arriba cuando tiene valor o está enfocado */
+.floatingInputGroup:has(.react-datepicker-wrapper) .floatingLabelCustom {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 400;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  background-color: transparent;
+  padding: 0;
+}
+
+/* Cuando el DatePicker tiene valor (clase hasValue) o está enfocado */
+.floatingInputGroup.hasValue .floatingLabelCustom,
+.floatingInputGroup:has(.react-datepicker-wrapper input:focus) .floatingLabelCustom {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: var(--surface-2);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  color: var(--text-muted);
+}
+
+/* Cuando el DatePicker está enfocado */
+.floatingInputGroup:has(.react-datepicker-wrapper input:focus) .floatingLabelCustom {
+  color: var(--primary);
+}
+
+.btnOutlineLight {
+  color: white !important;
+  background-color: transparent !important;
+  border: 2px solid var(--primary) !important;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.btnOutlineLight:hover {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: white !important;
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.2);
+}
+
+.btnOutlineLight:active {
+  background-color: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  color: white !important;
+  transform: scale(0.98);
+}

@@ -1,0 +1,187 @@
+/* Estilos personalizados para react-datepicker */
+
+/* Input del DatePicker */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container {
+  width: 100%;
+}
+
+/* El DatePicker siempre muestra el label arriba cuando tiene valor o está enfocado */
+.react-datepicker__input-container input:not(:placeholder-shown) ~ label,
+.react-datepicker__input-container input:focus ~ label {
+  top: 0 !important;
+  transform: translateY(-50%) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  background-color: var(--surface-2) !important;
+  padding: 0.125rem 0.5rem !important;
+  border-radius: 0.375rem !important;
+  color: var(--text-muted) !important;
+}
+
+/* Contenedor del calendario */
+.react-datepicker {
+  font-family: inherit;
+  background-color: var(--surface-2) !important;
+  border: 2px solid var(--primary) !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Header del calendario */
+.react-datepicker__header {
+  background-color: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  padding-top: 0.8rem;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+  color: var(--text) !important;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Días de la semana */
+.react-datepicker__day-name {
+  color: var(--text-muted) !important;
+  font-weight: 500;
+  width: 2.2rem;
+  line-height: 2.2rem;
+  margin: 0.2rem;
+}
+
+/* Días del mes */
+.react-datepicker__day {
+  color: var(--text) !important;
+  background-color: transparent;
+  width: 2.2rem;
+  line-height: 2.2rem;
+  margin: 0.2rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.react-datepicker__day:hover {
+  background-color: var(--primary) !important;
+  color: white !important;
+}
+
+/* Día seleccionado */
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: var(--primary) !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
+  background-color: var(--primary-hover) !important;
+}
+
+/* Día de hoy */
+.react-datepicker__day--today {
+  font-weight: 600;
+  border: 2px solid var(--primary);
+}
+
+/* Días fuera del mes actual */
+.react-datepicker__day--outside-month {
+  color: var(--text-muted) !important;
+  opacity: 0.5;
+}
+
+/* Días deshabilitados */
+.react-datepicker__day--disabled {
+  color: var(--text-muted) !important;
+  opacity: 0.3;
+  cursor: not-allowed !important;
+}
+
+.react-datepicker__day--disabled:hover {
+  background-color: transparent !important;
+  color: var(--text-muted) !important;
+}
+
+/* Navegación (flechas) */
+.react-datepicker__navigation {
+  top: 0.8rem;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: var(--primary);
+  border-width: 2px 2px 0 0;
+}
+
+.react-datepicker__navigation:hover *::before {
+  border-color: var(--primary-hover);
+}
+
+/* Dropdown de año */
+.react-datepicker__year-dropdown,
+.react-datepicker__month-dropdown,
+.react-datepicker__month-year-dropdown {
+  background-color: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.375rem;
+}
+
+.react-datepicker__year-option,
+.react-datepicker__month-option,
+.react-datepicker__month-year-option {
+  color: var(--text) !important;
+  padding: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.react-datepicker__year-option:hover,
+.react-datepicker__month-option:hover,
+.react-datepicker__month-year-option:hover {
+  background-color: var(--primary) !important;
+  color: white !important;
+}
+
+.react-datepicker__year-option--selected,
+.react-datepicker__month-option--selected,
+.react-datepicker__month-year-option--selected {
+  background-color: var(--primary) !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+/* Scroll del dropdown de años */
+.react-datepicker__year-dropdown {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Personalizar scrollbar del dropdown */
+.react-datepicker__year-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.react-datepicker__year-dropdown::-webkit-scrollbar-track {
+  background: var(--surface);
+  border-radius: 3px;
+}
+
+.react-datepicker__year-dropdown::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+.react-datepicker__year-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hover);
+}
+
+/* Triángulo del dropdown */
+.react-datepicker__triangle {
+  display: none;
+}
