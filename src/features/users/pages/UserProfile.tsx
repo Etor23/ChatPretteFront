@@ -1,20 +1,117 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { getMe } from "../../../services/authService";
+import type { UserResponse } from "../../types";
 import { User } from "../types";
 import styles from "./UserProfile.module.css";
 
-// Datos de ejemplo para visualización
-const mockUser: User = {
-  id: "1",
-  name: "Juan Pérez",
-  email: "juan.perez@example.com",
-  avatar: "",
-  status: "online",
-  lastSeen: new Date(),
+type ProfileLocationState = {
+  user?: UserResponse;
+};
+
+const mapUserResponseToProfile = (user: UserResponse): User => {
+  const rawBirth = (user as any).birthDate || (user as any).birthdate;
+  const rawCreated = (user as any).createdAt || (user as any).created_at;
+  return {
+    id: user.id,
+    name: user.username,
+    email: user.email,
+    avatar: user.avatar_url,
+    status: "online",
+    birthDate: rawBirth ? new Date(rawBirth) : undefined,
+    createdAt: rawCreated ? new Date(rawCreated) : undefined,
+  };
 };
 
 function UserProfile() {
   const navigate = useNavigate();
-  const user = mockUser;
+  const location = useLocation();
+  const initialUserFromState = (location.state as ProfileLocationState | null)?.user;
+  const storedUserJson = localStorage.getItem("chatprett_user");
+  const initialUser = initialUserFromState || (storedUserJson ? JSON.parse(storedUserJson) : undefined);
+
+  const [user, setUser] = useState<User | null>(
+    initialUser ? mapUserResponseToProfile(initialUser) : null
+  );
+  const [loading, setLoading] = useState(!initialUser);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    // Si ya tenemos ambos campos de fecha en el usuario inicial (localStorage o navigation state),
+    // no hacemos la petición a /auth/me y usamos esos datos directamente.
+    let cancelled = false;
+
+    const hasFullDates = (u: any) => {
+      if (!u) return false;
+      const rawBirth = u.birthDate || u.birthdate;
+      const rawCreated = u.createdAt || u.created_at;
+      return !!rawBirth && !!rawCreated;
+    };
+
+    if (initialUser && hasFullDates(initialUser)) {
+      // usar el usuario ya disponible y evitar petición
+      setUser(mapUserResponseToProfile(initialUser as UserResponse));
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const loadProfile = async () => {
+      try {
+        const me = await getMe();
+        if (!cancelled) {
+          const rawBirth = (me as any).birthdate || (me as any).birthDate;
+          const rawCreated = (me as any).created_at || (me as any).createdAt;
+          const fullUser: User = {
+            id: me.id,
+            name: me.username,
+            email: me.email,
+            avatar: me.avatar_url,
+            status: "online",
+            birthDate: rawBirth ? new Date(rawBirth) : undefined,
+            createdAt: rawCreated ? new Date(rawCreated) : undefined,
+          };
+          setUser(fullUser);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("No se pudo cargar el perfil. Vuelve a iniciar sesión.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <section className={`min-vh-100 ${styles.gradientBg}`}>
+        <div className="container py-5 d-flex justify-content-center align-items-center min-vh-100">
+          <div className="text-center text-white">Cargando perfil...</div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <section className={`min-vh-100 ${styles.gradientBg}`}>
+        <div className="container py-5 d-flex justify-content-center align-items-center min-vh-100">
+          <div className="alert alert-danger text-center">{error}</div>
+        </div>
+      </section>
+    );
+  }
 
   const getStatusColor = (status?: string) => {
     switch (status) {
@@ -74,6 +171,24 @@ function UserProfile() {
             <div className={styles.profileCard}>
               {/* Header con gradiente */}
               <div className={styles.profileHeader}>
+                <div className={styles.headerActions}>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnSecondary} ${styles.backButton}`}
+                    onClick={() => navigate("/chats")}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path d="M5.854 4.646a.5.5 0 0 1 0 .708L3.707 7.5H14.5a.5.5 0 0 1 0 1H3.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 0 1 .708 0z" />
+                    </svg>
+                    Volver
+                  </button>
+                </div>
                 <div className={styles.headerPattern}></div>
               </div>
 
@@ -167,7 +282,15 @@ function UserProfile() {
                     </div>
                     <div className={styles.infoContent}>
                       <span className={styles.infoLabel}>Fecha de Nacimiento</span>
-                      <span className={styles.infoValue}>15 de Marzo de 1998</span>
+                      <span className={styles.infoValue}>
+                        {user.birthDate
+                          ? user.birthDate.toLocaleDateString("es-ES", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
+                          : "No especificada"}
+                      </span>
                     </div>
                   </div>
 
@@ -185,7 +308,14 @@ function UserProfile() {
                     </div>
                     <div className={styles.infoContent}>
                       <span className={styles.infoLabel}>Miembro desde</span>
-                      <span className={styles.infoValue}>Enero 2024</span>
+                      <span className={styles.infoValue}>
+                        {user.createdAt
+                          ? user.createdAt.toLocaleDateString("es-ES", {
+                              year: "numeric",
+                              month: "long",
+                            })
+                          : "No especificado"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -193,6 +323,7 @@ function UserProfile() {
                 {/* Botones de acción */}
                 <div className={styles.actionButtons}>
                   <button
+                    type="button"
                     className={`${styles.btn} ${styles.btnPrimary}`}
                     onClick={() => navigate("/edit-profile")}
                   >
@@ -207,7 +338,7 @@ function UserProfile() {
                     </svg>
                     Editar Perfil
                   </button>
-                  <button className={`${styles.btn} ${styles.btnSecondary}`}>
+                  <button type="button" className={`${styles.btn} ${styles.btnSecondary}`}>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"

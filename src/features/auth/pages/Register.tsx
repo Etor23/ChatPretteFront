@@ -79,7 +79,7 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await registerUser(email, password, username);
+      const response = await registerUser(email, password, username, birthDate);
       console.log("Registro exitoso:", response.user.username);
 
       // Redirigir al chat o dashboard

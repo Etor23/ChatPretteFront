@@ -3,24 +3,33 @@ import { useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { User } from "../types";
+import { USER_KEY, updateMe } from "../../../services/authService";
 import styles from "./EditUserProfile.module.css";
-
-// Datos de ejemplo
-const mockUser: User = {
-  id: "1",
-  name: "Juan Pérez",
-  email: "juan.perez@example.com",
-  avatar: "",
-  status: "online",
-  lastSeen: new Date(),
-};
 
 function EditUserProfile() {
   const navigate = useNavigate();
-  const user = mockUser;
+  // Try to load persisted user from localStorage
+  const storedJson = localStorage.getItem(USER_KEY) || localStorage.getItem("chatprett_user");
+  const storedUser = storedJson ? JSON.parse(storedJson) : null;
 
-  const [username, setUsername] = useState(user.name || "");
-  const [birthDate, setBirthDate] = useState<Date | null>(new Date("1998-03-15"));
+  const initialUsername: string = storedUser?.username || storedUser?.name || "";
+  const rawBirth = storedUser?.birthDate || storedUser?.birthdate;
+  const initialBirth: Date | null = rawBirth ? new Date(rawBirth) : null;
+
+  const [username, setUsername] = useState(initialUsername);
+  const [birthDate, setBirthDate] = useState<Date | null>(initialBirth);
+  const [error, setError] = useState("");
+
+  // Build a minimal `user` object for display (avatar, status, etc.)
+  const user: User = {
+    id: storedUser?.id || "",
+    name: initialUsername || "",
+    email: storedUser?.email || "",
+    avatar: storedUser?.avatar_url || storedUser?.avatar || "",
+    status: storedUser?.status || "online",
+    lastSeen: storedUser?.lastSeen ? new Date(storedUser.lastSeen) : new Date(),
+    birthDate: initialBirth || undefined,
+  };
   const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
 
   const getStatusColor = (status?: string) => {
@@ -73,9 +82,30 @@ function EditUserProfile() {
   };
 
   const handleSave = () => {
-    // Aquí iría la lógica para guardar los cambios
-    console.log("Cambios guardados:", { username, birthDate });
-    navigate("/profile");
+    setError("");
+    const doSave = async () => {
+      try {
+        const payload: { username?: string; birthDate?: string | null } = {
+          username,
+          birthDate: birthDate ? birthDate.toISOString() : null,
+        };
+        const updated = await updateMe(payload);
+        // update local state and localStorage already handled in updateMe
+        navigate("/profile");
+      } catch (err: any) {
+        // eslint-disable-next-line no-console
+        console.error("Error actualizando perfil:", err);
+        
+        // Check for 409 Conflict (username already exists)
+        if (err.response?.status === 409) {
+          setError("Ya existe un usuario con este nombre de usuario.");
+        } else {
+          setError("No se pudo actualizar el perfil.");
+        }
+      }
+    };
+
+    void doSave();
   };
 
   const handleCancel = () => {
@@ -135,6 +165,13 @@ function EditUserProfile() {
 
               {/* Información del usuario editable */}
               <div className={styles.profileBody}>
+                {/* Error message */}
+                {error && (
+                  <div className="alert alert-danger" role="alert">
+                    {error}
+                  </div>
+                )}
+
                 {/* Usuario (input editable) */}
                 <div className={styles.editableField}>
                   <label className={styles.fieldLabel}>Usuario</label>

@@ -6,6 +6,8 @@ export interface User {
   avatar?: string;
   status?: 'online' | 'offline' | 'away';
   lastSeen?: Date;
+  birthDate?: Date;
+  createdAt?: Date;
 }
 
 export interface UserState {

@@ -1,5 +1,6 @@
 import axios from "axios";
-import { auth } from "../config/firebase";
+
+const AUTH_TOKEN_KEY = "chatprett_token";
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || "http://localhost:8080/api",
@@ -8,13 +9,15 @@ const api = axios.create({
   },
 });
 
-api.interceptors.request.use(async (config) => {
-  const user = auth.currentUser;
-  if (user) {
-    const token = await user.getIdToken();
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (token) {
+    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
 export default api;
+
+export { AUTH_TOKEN_KEY };

@@ -20,6 +20,13 @@
   overflow: hidden;
 }
 
+.headerActions {
+  position: absolute;
+  top: var(--spacing-md);
+  left: var(--spacing-md);
+  z-index: 2;
+}
+
 .headerPattern {
   position: absolute;
   top: 0;
@@ -102,6 +109,11 @@
 .profileBody {
   padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-xl);
   text-align: center;
+}
+
+.backButton {
+  flex: 0 0 auto;
+  width: auto;
 }
 
 .userName {

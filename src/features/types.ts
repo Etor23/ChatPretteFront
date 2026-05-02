@@ -4,6 +4,8 @@ export interface UserResponse {
   email: string;
   username: string;
   avatar_url?: string;
+  birthDate?: string | Date;
+  createdAt?: string | Date;
 }
 
 export interface LoginResponse {

@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../../../services/authService";
+import { AUTH_TOKEN_KEY } from "../../../services/apiService";
+import { getMe, loginUser, USER_KEY } from "../../../services/authService";
 import styles from "./Login.module.css";
 
 function Login() {
@@ -14,6 +15,44 @@ function Login() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const verifyStoredToken = async () => {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+
+      if (!token) {
+        if (!cancelled) {
+          setCheckingSession(false);
+        }
+        return;
+      }
+
+      try {
+        const user = await getMe();
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+
+        if (!cancelled) {
+          navigate("/chats", { replace: true, state: { user } });
+        }
+      } catch {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+
+        if (!cancelled) {
+          setCheckingSession(false);
+        }
+      }
+    };
+
+    void verifyStoredToken();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   const emailError =
     email.length > 0 && !emailRegex.test(email)
@@ -42,8 +81,8 @@ function Login() {
       const response = await loginUser(email, password);
       console.log("Login exitoso:", response.user.username);
 
-      // Redirigir al chat o dashboard
-      navigate("/");
+      // Redirigir a la pantalla de chats
+      navigate("/chats", { state: { user: response.user } });
     } catch (err: any) {
       console.error("Error en login:", err);
 
@@ -76,93 +115,101 @@ function Login() {
               style={{ borderRadius: "1rem" }}
             >
               <div className="card-body p-5 text-center">
-                <div className="mb-md-5 mt-md-4 pb-5">
-                  <h2 className="fw-bold mb-2 text-uppercase">Login</h2>
-                  <p className="text-white-50 mb-5">
-                    Ingresa tu correo y contraseña!
-                  </p>
+                {checkingSession ? (
+                  <div className="py-5 my-5">
+                    <div className="text-white-50">Verificando sesión...</div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-md-5 mt-md-4 pb-5">
+                      <h2 className="fw-bold mb-2 text-uppercase">Login</h2>
+                      <p className="text-white-50 mb-5">
+                        Ingresa tu correo y contraseña!
+                      </p>
 
-                  {error && (
-                    <div className="alert alert-danger py-2" role="alert">
-                      {error}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleSubmit}>
-                    <div className={styles.floatingInputGroup}>
-                      <input
-                        type="email"
-                        id="typeEmailX"
-                        className={`form-control form-control-lg ${styles.floatingInput} ${(emailTouched || submitted) && emailError ? styles.invalidInput : ""}`}
-                        placeholder=" "
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        onBlur={() => setEmailTouched(true)}
-                        required
-                        disabled={loading}
-                      />
-                      <label
-                        className={styles.floatingLabelCustom}
-                        htmlFor="typeEmailX"
-                      >
-                        Correo
-                      </label>
-                      {(emailTouched || submitted) && emailError && (
-                        <p className={styles.fieldError}>{emailError}</p>
+                      {error && (
+                        <div className="alert alert-danger py-2" role="alert">
+                          {error}
+                        </div>
                       )}
+
+                      <form onSubmit={handleSubmit}>
+                        <div className={styles.floatingInputGroup}>
+                          <input
+                            type="email"
+                            id="typeEmailX"
+                            className={`form-control form-control-lg ${styles.floatingInput} ${(emailTouched || submitted) && emailError ? styles.invalidInput : ""}`}
+                            placeholder=" "
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            onBlur={() => setEmailTouched(true)}
+                            required
+                            disabled={loading}
+                          />
+                          <label
+                            className={styles.floatingLabelCustom}
+                            htmlFor="typeEmailX"
+                          >
+                            Correo
+                          </label>
+                          {(emailTouched || submitted) && emailError && (
+                            <p className={styles.fieldError}>{emailError}</p>
+                          )}
+                        </div>
+
+                        <div className={styles.floatingInputGroup}>
+                          <input
+                            type="password"
+                            id="typePasswordX"
+                            className={`form-control form-control-lg ${styles.floatingInput} ${(passwordTouched || submitted) && passwordError ? styles.invalidInput : ""}`}
+                            placeholder=" "
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            onBlur={() => setPasswordTouched(true)}
+                            required
+                            disabled={loading}
+                          />
+                          <label
+                            className={styles.floatingLabelCustom}
+                            htmlFor="typePasswordX"
+                          >
+                            Contraseña
+                          </label>
+                          {(passwordTouched || submitted) && passwordError && (
+                            <p className={styles.fieldError}>{passwordError}</p>
+                          )}
+                        </div>
+
+                        <p className="small mb-5 pb-lg-2">
+                          <a className="text-white-50" href="#!">
+                            Olvidaste tu contraseña?
+                          </a>
+                        </p>
+
+                        <button
+                          className={`btn btn-lg px-5 ${styles.btnOutlineLight}`}
+                          type="submit"
+                          disabled={loading}
+                        >
+                          {loading ? "Ingresando..." : "Login"}
+                        </button>
+                      </form>
                     </div>
 
-                    <div className={styles.floatingInputGroup}>
-                      <input
-                        type="password"
-                        id="typePasswordX"
-                        className={`form-control form-control-lg ${styles.floatingInput} ${(passwordTouched || submitted) && passwordError ? styles.invalidInput : ""}`}
-                        placeholder=" "
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onBlur={() => setPasswordTouched(true)}
-                        required
-                        disabled={loading}
-                      />
-                      <label
-                        className={styles.floatingLabelCustom}
-                        htmlFor="typePasswordX"
-                      >
-                        Contraseña
-                      </label>
-                      {(passwordTouched || submitted) && passwordError && (
-                        <p className={styles.fieldError}>{passwordError}</p>
-                      )}
+                    <div>
+                      <p className="mb-0">
+                        ¿No tienes cuenta?{" "}
+                        <Link
+                          to="/register"
+                          className="text-white-50 fw-bold"
+                          style={{ cursor: "pointer" }}
+                        >
+                          Regístrate
+                        </Link>
+                      </p>
                     </div>
-
-                    <p className="small mb-5 pb-lg-2">
-                      <a className="text-white-50" href="#!">
-                        Olvidaste tu contraseña?
-                      </a>
-                    </p>
-
-                    <button
-                      className={`btn btn-lg px-5 ${styles.btnOutlineLight}`}
-                      type="submit"
-                      disabled={loading}
-                    >
-                      {loading ? "Ingresando..." : "Login"}
-                    </button>
-                  </form>
-                </div>
-
-                <div>
-                  <p className="mb-0">
-                    ¿No tienes cuenta?{" "}
-                    <Link
-                      to="/register"
-                      className="text-white-50 fw-bold"
-                      style={{ cursor: "pointer" }}
-                    >
-                      Regístrate
-                    </Link>
-                  </p>
-                </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
