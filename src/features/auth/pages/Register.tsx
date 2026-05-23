@@ -79,7 +79,7 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await registerUser(email, password, username, birthDate);
+      await registerUser(email, password, username, birthDate);
       navigate("/");
     } catch (err: any) {
       // Errores de Firebase

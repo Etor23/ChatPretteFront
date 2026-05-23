@@ -86,6 +86,9 @@ function UserProfile() {
     return () => {
       cancelled = true;
     };
+    // initialUser se deriva de location.state y localStorage en cada render,
+    // la dependencia vacía es intencional para ejecutar solo al montar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
