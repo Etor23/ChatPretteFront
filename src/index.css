@@ -1,16 +1,10 @@
-/* Import CSS variables */
 @import './shared/styles/variables.css';
+@import './shared/styles/globals.css';
 @import './shared/styles/DatePicker.css';
 
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--bg);
-  color: var(--text);
 }
 
 code {

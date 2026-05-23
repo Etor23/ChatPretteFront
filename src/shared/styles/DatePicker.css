@@ -185,3 +185,8 @@
 .react-datepicker__triangle {
   display: none;
 }
+
+/* Ensure the calendar renders above everything (avatar, cards, modals) */
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}

@@ -1,20 +1,39 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { User } from "../types";
-import { USER_KEY, updateMe } from "../../../services/authService";
+import { USER_KEY, updateMe, uploadAvatar } from "../../../services/authService";
 import styles from "./EditUserProfile.module.css";
 
 function EditUserProfile() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectedForBirthdate = location.state?.requireBirthdate === true ||
+    (() => {
+      const json = localStorage.getItem(USER_KEY) || localStorage.getItem("chatprett_user");
+      if (!json) return false;
+      const u = JSON.parse(json);
+      const raw: string | undefined = u?.birth_date ?? u?.birthDate ?? u?.birthdate;
+      return !raw || raw.startsWith("0001-01-01");
+    })();
+
   // Try to load persisted user from localStorage
   const storedJson = localStorage.getItem(USER_KEY) || localStorage.getItem("chatprett_user");
   const storedUser = storedJson ? JSON.parse(storedJson) : null;
 
   const initialUsername: string = storedUser?.username || storedUser?.name || "";
-  const rawBirth = storedUser?.birthDate || storedUser?.birthdate;
-  const initialBirth: Date | null = rawBirth ? new Date(rawBirth) : null;
+
+  const rawBirth: string | undefined =
+    storedUser?.birth_date ?? storedUser?.birthDate ?? storedUser?.birthdate;
+  const initialBirth: Date | null =
+    !rawBirth || rawBirth.startsWith("0001-01-01")
+      ? null
+      : (() => {
+          // "YYYY-MM-DD" → local midnight to avoid UTC offset shifting the day
+          const parts = rawBirth.split("-").map(Number);
+          return new Date(parts[0], parts[1] - 1, parts[2]);
+        })();
 
   const [username, setUsername] = useState(initialUsername);
   const [birthDate, setBirthDate] = useState<Date | null>(initialBirth);
@@ -31,6 +50,22 @@ function EditUserProfile() {
     birthDate: initialBirth || undefined,
   };
   const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string>(user.avatar || "");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarClick = () => {
+    avatarFileRef.current?.click();
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarUrl(URL.createObjectURL(file));
+    if (avatarFileRef.current) avatarFileRef.current.value = "";
+  };
 
   const getStatusColor = (status?: string) => {
     switch (status) {
@@ -45,32 +80,6 @@ function EditUserProfile() {
     }
   };
 
-  const getStatusText = (status?: string) => {
-    switch (status) {
-      case "online":
-        return "En línea";
-      case "away":
-        return "Ausente";
-      case "offline":
-        return "Desconectado";
-      default:
-        return "Desconectado";
-    }
-  };
-
-  const formatLastSeen = (date?: Date) => {
-    if (!date) return "Hace mucho tiempo";
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return "Ahora mismo";
-    if (minutes < 60) return `Hace ${minutes} minuto${minutes > 1 ? "s" : ""}`;
-    if (hours < 24) return `Hace ${hours} hora${hours > 1 ? "s" : ""}`;
-    return `Hace ${days} día${days > 1 ? "s" : ""}`;
-  };
 
   const getInitials = (name?: string) => {
     if (!name) return "?";
@@ -84,32 +93,31 @@ function EditUserProfile() {
   const handleSave = () => {
     setError("");
     const doSave = async () => {
+      setSaving(true);
       try {
-        const payload: { username?: string; birthDate?: string | null } = {
+        if (avatarFile) {
+          await uploadAvatar(user.id, avatarFile);
+        }
+        await updateMe({
           username,
-          birthDate: birthDate ? birthDate.toISOString() : null,
-        };
-        const updated = await updateMe(payload);
-        // update local state and localStorage already handled in updateMe
+          birthDate: birthDate ? birthDate.toISOString().split("T")[0] : null,
+        });
         navigate("/profile");
       } catch (err: any) {
-        // eslint-disable-next-line no-console
-        console.error("Error actualizando perfil:", err);
-        
-        // Check for 409 Conflict (username already exists)
         if (err.response?.status === 409) {
           setError("Ya existe un usuario con este nombre de usuario.");
         } else {
           setError("No se pudo actualizar el perfil.");
         }
+      } finally {
+        setSaving(false);
       }
     };
-
     void doSave();
   };
 
   const handleCancel = () => {
-    navigate("/profile");
+    navigate(redirectedForBirthdate ? "/chats" : "/profile");
   };
 
   return (
@@ -126,15 +134,24 @@ function EditUserProfile() {
 
               {/* Avatar y estado */}
               <div className={styles.avatarSection}>
+                <input
+                  ref={avatarFileRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handleAvatarChange}
+                />
                 <div
                   className={styles.avatarWrapper}
+                  style={{ cursor: "pointer" }}
+                  onClick={handleAvatarClick}
                   onMouseEnter={() => setIsHoveringAvatar(true)}
                   onMouseLeave={() => setIsHoveringAvatar(false)}
                 >
-                  {user.avatar ? (
+                  {avatarUrl ? (
                     <img
-                      src={user.avatar}
-                      alt={user.name || "Usuario"}
+                      src={avatarUrl}
+                      alt={username || "Usuario"}
                       className={styles.avatar}
                     />
                   ) : (
@@ -144,27 +161,35 @@ function EditUserProfile() {
                   )}
                   {isHoveringAvatar && (
                     <div className={styles.avatarOverlay}>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="32"
-                        height="32"
-                        fill="white"
-                        viewBox="0 0 16 16"
-                      >
-                        <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z" />
+                      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="white" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
                       </svg>
                     </div>
                   )}
-                  <span
-                    className={`${styles.statusBadge} ${getStatusColor(
-                      user.status
-                    )}`}
-                  ></span>
+                  <span className={`${styles.statusBadge} ${getStatusColor(user.status)}`}></span>
                 </div>
               </div>
 
               {/* Información del usuario editable */}
               <div className={styles.profileBody}>
+                {/* Banner: fecha de nacimiento requerida */}
+                {redirectedForBirthdate && (
+                  <div className={styles.requiredBanner}>
+                    <span className={styles.requiredBannerIcon}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                      </svg>
+                    </span>
+                    <div className={styles.requiredBannerText}>
+                      <span className={styles.requiredBannerTitle}>Fecha de nacimiento requerida</span>
+                      <span className={styles.requiredBannerBody}>
+                        Debes asignar tu fecha de nacimiento para poder usar la aplicación.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Error message */}
                 {error && (
                   <div className="alert alert-danger" role="alert">
@@ -210,7 +235,9 @@ function EditUserProfile() {
                           scrollableYearDropdown
                           yearDropdownItemNumber={100}
                           maxDate={new Date()}
-                          placeholderText="Selecciona tu fecha de nacimiento"
+                          placeholderText="No especificada"
+                          popperPlacement="bottom-start"
+                          popperProps={{ strategy: "fixed" }}
                         />
                       </div>
                     </div>
@@ -222,6 +249,7 @@ function EditUserProfile() {
                   <button
                     className={`${styles.btn} ${styles.btnSave}`}
                     onClick={handleSave}
+                    disabled={saving}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -235,21 +263,24 @@ function EditUserProfile() {
                     </svg>
                     Guardar Cambios
                   </button>
-                  <button
-                    className={`${styles.btn} ${styles.btnCancel}`}
-                    onClick={handleCancel}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
+                  {!redirectedForBirthdate && (
+                    <button
+                      className={`${styles.btn} ${styles.btnCancel}`}
+                      onClick={handleCancel}
+                      disabled={saving}
                     >
-                      <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-                    </svg>
-                    Cancelar
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        fill="currentColor"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+                      </svg>
+                      Cancelar
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

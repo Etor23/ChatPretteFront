@@ -4,6 +4,10 @@ export interface UserResponse {
   email: string;
   username: string;
   avatar_url?: string;
+  birth_date?: string;
+  created_at?: string;
+  is_online?: boolean;
+  // legacy camelCase fields kept for backward compat
   birthDate?: string | Date;
   createdAt?: string | Date;
 }

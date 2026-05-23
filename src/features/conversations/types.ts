@@ -1,16 +1,18 @@
 // Conversations types
-export interface Conversation {
+export interface ConversationMember {
   id: string;
-  name: string;
-  participants: string[];
-  lastMessage?: string;
-  lastMessageAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  username: string;
+  avatar_url?: string;
+  is_online?: boolean;
 }
 
-export interface ConversationState {
-  conversations: Conversation[];
-  selectedConversation: Conversation | null;
-  isLoading: boolean;
+export interface Conversation {
+  id: string;
+  type: string;
+  name?: string;
+  members: ConversationMember[];
+  created_by: string;
+  last_message_preview?: string;
+  last_message_at: string | null;
+  created_at: string;
 }

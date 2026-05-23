@@ -80,13 +80,8 @@ function Register() {
 
     try {
       const response = await registerUser(email, password, username, birthDate);
-      console.log("Registro exitoso:", response.user.username);
-
-      // Redirigir al chat o dashboard
       navigate("/");
     } catch (err: any) {
-      console.error("Error en registro:", err);
-
       // Errores de Firebase
       if (err.code === "auth/email-already-in-use") {
         setError("Ya existe una cuenta con ese correo");

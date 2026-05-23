@@ -10,16 +10,29 @@ type ProfileLocationState = {
   user?: UserResponse;
 };
 
-const mapUserResponseToProfile = (user: UserResponse): User => {
-  const rawBirth = (user as any).birthDate || (user as any).birthdate;
-  const rawCreated = (user as any).createdAt || (user as any).created_at;
+// "0001-01-01" is Go's zero time for unset dates
+function isZeroDate(d?: string | null) {
+  return !d || d.startsWith("0001-01-01");
+}
+
+// "YYYY-MM-DD" → local midnight (avoids UTC-offset day shift)
+function parseLocalDate(d: string): Date {
+  const [y, m, day] = d.split("-").map(Number);
+  return new Date(y, m - 1, day);
+}
+
+const mapUserResponseToProfile = (user: any): User => {
+  const rawBirth: string | undefined =
+    user.birth_date ?? user.birthDate ?? user.birthdate;
+  const rawCreated: string | undefined =
+    user.created_at ?? user.createdAt;
   return {
     id: user.id,
     name: user.username,
     email: user.email,
-    avatar: user.avatar_url,
+    avatar: user.avatar_url ?? user.avatar,
     status: "online",
-    birthDate: rawBirth ? new Date(rawBirth) : undefined,
+    birthDate: isZeroDate(rawBirth) ? undefined : parseLocalDate(rawBirth!),
     createdAt: rawCreated ? new Date(rawCreated) : undefined,
   };
 };
@@ -42,38 +55,20 @@ function UserProfile() {
     // no hacemos la petición a /auth/me y usamos esos datos directamente.
     let cancelled = false;
 
-    const hasFullDates = (u: any) => {
-      if (!u) return false;
-      const rawBirth = u.birthDate || u.birthdate;
-      const rawCreated = u.createdAt || u.created_at;
-      return !!rawBirth && !!rawCreated;
-    };
+    // Skip the API call only when we already have created_at (birth_date is optional)
+    const hasCreatedAt = (u: any) => !!(u?.created_at || u?.createdAt);
 
-    if (initialUser && hasFullDates(initialUser)) {
-      // usar el usuario ya disponible y evitar petición
-      setUser(mapUserResponseToProfile(initialUser as UserResponse));
+    if (initialUser && hasCreatedAt(initialUser)) {
+      setUser(mapUserResponseToProfile(initialUser));
       setLoading(false);
-      return () => {
-        cancelled = true;
-      };
+      return () => { cancelled = true; };
     }
 
     const loadProfile = async () => {
       try {
         const me = await getMe();
         if (!cancelled) {
-          const rawBirth = (me as any).birthdate || (me as any).birthDate;
-          const rawCreated = (me as any).created_at || (me as any).createdAt;
-          const fullUser: User = {
-            id: me.id,
-            name: me.username,
-            email: me.email,
-            avatar: me.avatar_url,
-            status: "online",
-            birthDate: rawBirth ? new Date(rawBirth) : undefined,
-            createdAt: rawCreated ? new Date(rawCreated) : undefined,
-          };
-          setUser(fullUser);
+          setUser(mapUserResponseToProfile(me));
         }
       } catch {
         if (!cancelled) {
